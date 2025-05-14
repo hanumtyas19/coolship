@@ -1,5 +1,5 @@
 "use client"
-
+import { setAuthToken } from "@/lib/tokenHelper"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -59,6 +59,7 @@ export function LoginForm({
         toast.success("Login successful", {
           description: "You have successfully logged in."
         })
+        setAuthToken()
         router.push("/dashboard")
       } else {
         await deleteUser(user)
@@ -93,6 +94,7 @@ export function LoginForm({
         toast.success("Login successful", {
           description: "You have successfully logged in."
         })
+        setAuthToken()
         router.push("/dashboard")
       } else {
         await deleteUser(user)

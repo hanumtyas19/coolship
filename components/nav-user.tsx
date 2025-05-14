@@ -1,4 +1,5 @@
 "use client"
+import { logout } from "@/lib/tokenHelper"
 
 import {
   IconCreditCard,
@@ -28,6 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Button } from "./ui/button"
 
 export function NavUser({
   user,
@@ -82,9 +84,15 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuItem>
-              <IconLogout />
-              Log out
+            <DropdownMenuItem asChild>
+              <Button
+                variant="ghost"
+                className="w-full flex items-center justify-start"
+                onClick={logout()}
+              >
+                <IconLogout className="mr-2" />
+                Log out
+              </Button>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
