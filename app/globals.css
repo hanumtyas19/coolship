@@ -114,7 +114,7 @@
 
 @font-face {
   font-family: 'Digital-7';
-  src: url('@/components/font/digital-7.ttf') format('truetype');
+  src: url('../components/font/digital-7.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
