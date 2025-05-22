@@ -99,7 +99,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconLayoutDashboardFilled,
-    }
+    },
+    {
+      title: "History",
+      url: "/dashboard/history",
+      icon: IconLayoutDashboardFilled,
+    },
+
   ]
 
   return (

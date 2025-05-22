@@ -2,6 +2,7 @@
 
 import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react"
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -29,20 +30,17 @@ export function NavMain({
         <SidebarMenu> 
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton 
-                isActive={pathname === item.url} 
-                tooltip={item.title} 
-                variant={"outline"}
-                className={pathname === item.url ? "bg-[#EDEDEF]" : ""}
-              >
-                {item.icon && (
-                  <item.icon 
-                    className={`${pathname === item.url ? "text-[#005EB3]" : ""} !size-5`}
-                  />
-                )}
-                <span className={`${pathname === item.url ? "text-[#005EB3]" : ""} text-base`}>
-                  {item.title}
-                </span>
+              <SidebarMenuButton asChild>
+                <Link href={item.url}>
+                  {item.icon && (
+                    <item.icon 
+                      className={`${pathname === item.url ? "text-[#005EB3]" : ""} !size-5`}
+                    />
+                  )}
+                  <span className={`${pathname === item.url ? "text-[#005EB3]" : ""} text-base`}>
+                    {item.title}
+                  </span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

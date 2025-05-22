@@ -4,14 +4,14 @@ import ReactECharts from "echarts-for-react";
 interface ChartData {
   time: string;
   temperature: number;
-  ph: number;
+  humidity: number;
 }
 
 export default function EChartTempPh({ data }: { data: ChartData[] }) {
   const option = useMemo(() => {
     return {
       title: {
-        text: "Live Temp & pH",
+        text: "Live Temp & Humidity",
         left: "center",
       },
       animation: true,
@@ -21,7 +21,7 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
         trigger: "axis",
       },
       legend: {
-        data: ["Temperature", "pH"],
+        data: ["Temperature", "Humidity"],
         top: 30,
       },
       grid: {
@@ -47,7 +47,7 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
         },
         {
           type: "value",
-          name: "pH",
+          name: "Humidity",
           min: 5,
           max: 8,
         },
@@ -69,10 +69,10 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
           },
         },
         {
-          name: "pH",
+          name: "Humidity",
           type: "line",
           yAxisIndex: 1,
-          data: data.map((d) => d.ph),
+          data: data.map((d) => d.humidity),
           smooth: true,
           showSymbol: false,
           lineStyle: {

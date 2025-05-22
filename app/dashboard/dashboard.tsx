@@ -11,6 +11,8 @@ import {
   DirectionsRenderer,
 } from "@react-google-maps/api";
 import EChartTempPh from "@/components/EChartTempPh";
+import { requestPermissionAndGetToken, setupForegroundNotifications } from "@/lib/firebase-messaging";
+
 
 // Gaya default untuk ukuran map
 const mapContainerStyle = {
@@ -44,7 +46,7 @@ const generateDummyChartData = () => {
   return {
     time: now.toLocaleTimeString(),
     temperature: Math.floor(Math.random() * 10 - 18), // antara -18 s.d -9
-    ph: +(Math.random() * (7.5 - 5.5) + 5.5).toFixed(2), // antara 5.5 s.d 7.5
+    humidity: +(Math.random() * (7.5 - 5.5) + 5.5).toFixed(2), // antara 5.5 s.d 7.5
   };
 };
 
@@ -115,6 +117,63 @@ export default function Home() {
     });
 
     return () => unsubscribe();
+  }, []);
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+        console.error("Service Worker or Notifications not supported");
+        return;
+      }
+  
+      try {
+        // Check if we already have permission
+        if (Notification.permission === 'default') {
+          console.log("Requesting notification permission");
+          const permission = await Notification.requestPermission();
+          console.log("Permission result:", permission);
+        }
+  
+        // Register service worker if it's not registered
+        let swRegistration;
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const existingSW = registrations.find(reg => 
+          reg.active && reg.active.scriptURL.includes('firebase-messaging-sw.js')
+        );
+        
+        if (existingSW) {
+          console.log("Service Worker already registered");
+          swRegistration = existingSW;
+        } else {
+          console.log("Registering Service Worker");
+          swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+            scope: '/'
+          });
+          console.log("Service Worker registered:", swRegistration);
+        }
+  
+        // Wait for the service worker to be ready
+        await navigator.serviceWorker.ready;
+        
+        // Get FCM token and save to database
+        const token = await requestPermissionAndGetToken();
+        if (token) {
+          console.log("FCM token obtained and saved");
+        }
+        
+        // Setup handling for foreground notifications
+        setupForegroundNotifications();
+        
+      } catch (err) {
+        console.error("Error setting up notifications:", err);
+      }
+    };
+  
+    setupNotifications();
+    
+    // Cleanup function
+    return () => {
+      // Any cleanup code needed
+    };
   }, []);
 
   const handleMapLoad = () => {
@@ -190,7 +249,7 @@ export default function Home() {
       {/* CHART SECTION */}
       <Card className="rounded-[30px] shadow-lg px-6 py-4 w-full max-w-4xl bg-white">
         <p className="text-center text-md font-semibold text-blue-600 mb-4">
-          Temperature & pH Chart (Live Dummy Data)
+          Temperature & Humidity Chart
         </p>
         <EChartTempPh data={chartData} />
       </Card>
@@ -201,34 +260,32 @@ export default function Home() {
           Real-time Location Map
         </p>
 
-        <LoadScript googleMapsApiKey="AIzaSyCPcc7NZeArZrA2X79nClEcYyv-hGY4iC8">
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={
+            hasValidCoordinates
+              ? { lat: latitude!, lng: longitude! }
+              : defaultCenter
+          }
+          zoom={12}
+          onLoad={handleMapLoad}
+          options={{
+            gestureHandling: "greedy",
+            zoomControl: true,
+            scrollwheel: true,
+            draggable: true,
+            disableDefaultUI: false,
+          }}
+        >
+          <Marker
+            position={
               hasValidCoordinates
                 ? { lat: latitude!, lng: longitude! }
                 : defaultCenter
             }
-            zoom={12}
-            onLoad={handleMapLoad}
-            options={{
-              gestureHandling: "greedy",
-              zoomControl: true,
-              scrollwheel: true,
-              draggable: true,
-              disableDefaultUI: false,
-            }}
-          >
-            <Marker
-              position={
-                hasValidCoordinates
-                  ? { lat: latitude!, lng: longitude! }
-                  : defaultCenter
-              }
-            />
-            {directions && <DirectionsRenderer directions={directions} />}
-          </GoogleMap>
-        </LoadScript>
+          />
+          {directions && <DirectionsRenderer directions={directions} />}
+        </GoogleMap>
       </Card>
     </div>
   );
