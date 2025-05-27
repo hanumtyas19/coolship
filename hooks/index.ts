@@ -1,15 +1,19 @@
-// functions/index.ts
-import * as functions from "firebase-functions/v1";
+// functions/src/index.ts
+import { onValueWritten } from "firebase-functions/v2/database";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-export const notifyOnSensorChange = functions.database
-  .ref("/sensor_data")
-  .onUpdate(async (change, context) => {
-    const after = change.after.val();
+export const notifyOnSensorChange = onValueWritten(
+  {
+    ref: "/sensor_data",
+    region: "asia-southeast1",
+  },
+  async (event) => {
+    const after = event.data?.after.val() || {};
     const { humidity, temperature_ds18b20 } = after;
 
+    // Validasi suhu dan kelembapan
     const isTempBad = temperature_ds18b20 > -9 || temperature_ds18b20 < -18;
     const isHumidityBad = humidity < 75 || humidity > 90;
 
@@ -19,17 +23,17 @@ export const notifyOnSensorChange = functions.database
 
       if (tokens.length === 0) return;
 
-      const payload = {
+      const payload: admin.messaging.MulticastMessage = {
         notification: {
           title: "⚠️ Kondisi Tidak Ideal!",
-          body: `Suhu: ${temperature_ds18b20}°C, Kelembapan: ${humidity}%`,
+          body: `Suhu: ${temperature_ds18b20}°C, Kelembaban: ${humidity}%`,
         },
+        tokens,
       };
 
-      await admin.messaging().sendMulticast({
-        tokens,
-        ...payload,
-      });
-      console.log("Notification sent to", tokens.length, "devices");
+      const response = await admin.messaging().sendEachForMulticast(payload);
+
+      console.log("Notification sent to", response.successCount, "devices");
     }
-  });
+  }
+);

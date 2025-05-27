@@ -1,18 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
-import { database } from "../../lib/firebase";
-import { ref, onValue } from "firebase/database";
+import { database, firestore } from "../../lib/firebase";
+import { ref, onValue, update as rtdbUpdate } from "firebase/database";
+import { collection, query, orderBy, onSnapshot, DocumentData } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ThermometerSnowflake, ThermometerSun, Droplet } from "lucide-react";
 import {
   GoogleMap,
-  LoadScript,
   Marker,
-  DirectionsRenderer,
+  Polyline,
 } from "@react-google-maps/api";
 import EChartTempPh from "@/components/EChartTempPh";
 import { requestPermissionAndGetToken, setupForegroundNotifications } from "@/lib/firebase-messaging";
-
 
 // Gaya default untuk ukuran map
 const mapContainerStyle = {
@@ -26,13 +26,6 @@ const defaultCenter = {
   lng: 111.9054,
 };
 
-// Dummy data untuk koordinat rute (buat testing visual map aja)
-const dummyRouteCoordinates = [
-  { lat: -7.610910180570211, lng: 111.51765202402059 },
-  { lat: -7.629648883407044, lng: 111.54267573928108 },
-  { lat: -7.755177511805382, lng: 111.52540624902066 },
-];
-
 interface SensorData {
   humidity: number | null;
   temperature_ds18b20: number | null;
@@ -40,26 +33,20 @@ interface SensorData {
   longitude: number | null;
 }
 
-// Dummy data generator untuk chart
-const generateDummyChartData = () => {
-  const now = new Date();
-  return {
-    time: now.toLocaleTimeString(),
-    temperature: Math.floor(Math.random() * 10 - 18), // antara -18 s.d -9
-    humidity: +(Math.random() * (7.5 - 5.5) + 5.5).toFixed(2), // antara 5.5 s.d 7.5
-  };
-};
-
 export default function Home() {
+  // --- existing states ---
   const [sensorData, setSensorData] = useState<SensorData>({
     humidity: null,
     temperature_ds18b20: null,
     latitude: null,
     longitude: null,
   });
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [chartData, setChartData] = useState<{ time: string; temperature: number; humidity: number }[]>([]);
 
-  const [directions, setDirections] =
-    useState<google.maps.DirectionsResult | null>(null);
+  // --- new tracking states ---
+  const [tracking, setTracking] = useState<boolean>(false);
+  const [routeCoords, setRouteCoords] = useState<{ lat: number; lng: number }[]>([]);
 
   const {
     temperature_ds18b20: temperature,
@@ -73,6 +60,131 @@ export default function Home() {
   const isOptimalHumidity =
     humidity !== null && humidity >= 75 && humidity <= 90;
 
+  // helper for fallback center
+  const hasValidCoordinates =
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    !isNaN(latitude) &&
+    !isNaN(longitude);
+
+  // ------------------------
+  // 1. RTDB: sensor_data listener
+  // ------------------------
+  useEffect(() => {
+    const dataRef = ref(database, "sensor_data");
+    const unsubscribe = onValue(dataRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const parsed = {
+          humidity: parseFloat(data.humidity) || null,
+          temperature_ds18b20: parseFloat(data.temperature_ds18b20) || null,
+          latitude: parseFloat(data.latitude) || null,
+          longitude: parseFloat(data.longitude) || null,
+        };
+        setSensorData(parsed);
+
+        // chart update
+        if (parsed.humidity !== null && parsed.temperature_ds18b20 !== null) {
+          setChartData((prev) => {
+            const time = new Date().toLocaleTimeString();
+            const newEntry = {
+              time,
+              temperature: parsed.temperature_ds18b20!,
+              humidity: parsed.humidity!,
+            };
+            return [...prev.slice(-19), newEntry];
+          });
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ------------------------
+  // 2. Notifications setup
+  // ------------------------
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+      try {
+        if (Notification.permission === "default") {
+          await Notification.requestPermission();
+        }
+
+        const regs = await navigator.serviceWorker.getRegistrations();
+        let swReg = regs.find((r) =>
+          r.active?.scriptURL.includes("firebase-messaging-sw.js")
+        );
+        if (!swReg) {
+          swReg = await navigator.serviceWorker.register(
+            "/firebase-messaging-sw.js",
+            { scope: "/" }
+          );
+        }
+        await navigator.serviceWorker.ready;
+        await requestPermissionAndGetToken();
+        setupForegroundNotifications();
+      } catch (err) {
+        console.error("Error setting up notifications:", err);
+      }
+    };
+    setupNotifications();
+  }, []);
+
+  // ------------------------
+  // 3. RTDB: track/status listener
+  // ------------------------
+  useEffect(() => {
+    const unsub = onValue(ref(database, "track/status"), (snap) => {
+      const s = snap.val() as boolean;
+      setTracking(s);
+      if (!s) {
+        // clear route when stopped
+        setRouteCoords([]);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // ------------------------
+  // 4. Firestore: subscribe entries when tracking
+  // ------------------------
+  useEffect(() => {
+    if (!tracking) return;
+    const today = new Date().toISOString().split("T")[0];
+    const entriesCol = collection(firestore, "tracking_logs", today, "entries");
+    const q = query(entriesCol, orderBy("timestamp", "asc"));
+    const unsubFs = onSnapshot(q, (snap) => {
+      const coords: { lat: number; lng: number }[] = [];
+      snap.forEach((doc) => {
+        const d = doc.data() as DocumentData;
+        coords.push({ lat: d.location.lat, lng: d.location.lng });
+      });
+      setRouteCoords(coords);
+    });
+    return () => unsubFs();
+  }, [tracking]);
+
+  // ------------------------
+  // 5. Handlers: start & stop
+  // ------------------------
+  const handleStart = () =>
+    rtdbUpdate(ref(database, "track"), { status: true });
+  const handleStop = () =>
+    rtdbUpdate(ref(database, "track"), { status: false });
+
+  // ------------------------
+  // 6. Map center logic
+  // ------------------------
+  const mapCenter = routeCoords.length
+    ? routeCoords[routeCoords.length - 1]
+    : hasValidCoordinates
+    ? { lat: latitude!, lng: longitude! }
+    : defaultCenter;
+
+  // ------------------------
+  // Render
+  // ------------------------
   const temperatureIcon = isOptimalTemp ? (
     <ThermometerSnowflake
       size={22}
@@ -81,154 +193,29 @@ export default function Home() {
   ) : (
     <ThermometerSun size={22} className="absolute top-2 left-3 text-red-500" />
   );
-
   const temperatureTextClass = isOptimalTemp
     ? "text-5xl font-digital text-black text-center tracking-wider"
     : "text-5xl font-digital text-red-500 text-center tracking-wider";
-
   const humidityIcon = isOptimalHumidity ? (
     <Droplet size={22} className="absolute top-2 left-3 text-gray-700" />
   ) : (
     <Droplet size={22} className="absolute top-2 left-3 text-red-500" />
   );
-
   const humidityTextClass = isOptimalHumidity
     ? "text-5xl font-digital text-black text-center tracking-wider"
     : "text-5xl font-digital text-red-500 text-center tracking-wider";
-
-  const hasValidCoordinates =
-    typeof latitude === "number" &&
-    typeof longitude === "number" &&
-    !isNaN(latitude) &&
-    !isNaN(longitude);
-
-  useEffect(() => {
-    const dataRef = ref(database, "sensor_data");
-    const unsubscribe = onValue(dataRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSensorData({
-          humidity: parseFloat(data.humidity) || null,
-          temperature_ds18b20: parseFloat(data.temperature_ds18b20) || null,
-          latitude: parseFloat(data.latitude) || null,
-          longitude: parseFloat(data.longitude) || null,
-        });
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-  useEffect(() => {
-    const setupNotifications = async () => {
-      if (!('serviceWorker' in navigator) || !('Notification' in window)) {
-        console.error("Service Worker or Notifications not supported");
-        return;
-      }
-  
-      try {
-        // Check if we already have permission
-        if (Notification.permission === 'default') {
-          console.log("Requesting notification permission");
-          const permission = await Notification.requestPermission();
-          console.log("Permission result:", permission);
-        }
-  
-        // Register service worker if it's not registered
-        let swRegistration;
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        const existingSW = registrations.find(reg => 
-          reg.active && reg.active.scriptURL.includes('firebase-messaging-sw.js')
-        );
-        
-        if (existingSW) {
-          console.log("Service Worker already registered");
-          swRegistration = existingSW;
-        } else {
-          console.log("Registering Service Worker");
-          swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-            scope: '/'
-          });
-          console.log("Service Worker registered:", swRegistration);
-        }
-  
-        // Wait for the service worker to be ready
-        await navigator.serviceWorker.ready;
-        
-        // Get FCM token and save to database
-        const token = await requestPermissionAndGetToken();
-        if (token) {
-          console.log("FCM token obtained and saved");
-        }
-        
-        // Setup handling for foreground notifications
-        setupForegroundNotifications();
-        
-      } catch (err) {
-        console.error("Error setting up notifications:", err);
-      }
-    };
-  
-    setupNotifications();
-    
-    // Cleanup function
-    return () => {
-      // Any cleanup code needed
-    };
-  }, []);
-
-  const handleMapLoad = () => {
-    if (typeof google !== "undefined" && dummyRouteCoordinates.length >= 2) {
-      const waypoints = dummyRouteCoordinates.slice(1, -1).map((coord) => ({
-        location: coord,
-        stopover: true,
-      }));
-
-      const directionsService = new google.maps.DirectionsService();
-      directionsService.route(
-        {
-          origin: dummyRouteCoordinates[0],
-          destination: dummyRouteCoordinates[dummyRouteCoordinates.length - 1],
-          waypoints: waypoints,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === "OK") {
-            setDirections(result);
-          } else {
-            console.error("Directions request failed:", result);
-          }
-        }
-      );
-    }
-  };
-
-  // CHART STATE & UPDATE PER DETIK
-  const [chartData, setChartData] = useState(() => {
-    return Array.from({ length: 10 }, () => generateDummyChartData());
-  });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setChartData((prev) => {
-        const newData = [...prev.slice(-19), generateDummyChartData()];
-        return newData;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center p-6 gap-6 font-sans">
       <h1 className="text-2xl font-bold text-black">Welcome to CoolShip</h1>
 
+      {/* Environment Card */}
       <Card className="rounded-[30px] shadow-lg px-8 py-4 flex flex-col items-center gap-4 bg-white">
         <p className="text-md font-semibold text-blue-600">
-          {(temperature !== null && temperature > -9) ||
-          (humidity !== null && (humidity < 75 || humidity > 90))
+          {(!isOptimalTemp || !isOptimalHumidity)
             ? "Warning: Check Env Conditions!"
             : "Overall is Good!"}
         </p>
-
         <div className="flex gap-4 items-center">
           <div className="relative bg-[#DCDCDC] rounded-[20px] w-[263px] h-[129px] flex flex-col justify-center px-4">
             {temperatureIcon}
@@ -236,7 +223,6 @@ export default function Home() {
               {temperature !== null ? temperature : "-"}°C
             </span>
           </div>
-
           <div className="relative bg-[#DCDCDC] rounded-[20px] w-[263px] h-[129px] flex flex-col justify-center px-4">
             {humidityIcon}
             <span className={humidityTextClass}>
@@ -246,7 +232,7 @@ export default function Home() {
         </div>
       </Card>
 
-      {/* CHART SECTION */}
+      {/* Chart Section */}
       <Card className="rounded-[30px] shadow-lg px-6 py-4 w-full max-w-4xl bg-white">
         <p className="text-center text-md font-semibold text-blue-600 mb-4">
           Temperature & Humidity Chart
@@ -254,21 +240,36 @@ export default function Home() {
         <EChartTempPh data={chartData} />
       </Card>
 
-      {/* MAP SECTION */}
+      {/* Map & Tracking Section */}
       <Card className="rounded-[30px] shadow-lg px-6 py-4 w-full max-w-4xl bg-white">
-        <p className="text-center text-md font-semibold text-blue-600">
+        <p className="text-center text-md font-semibold text-blue-600 mb-4">
           Real-time Location Map
         </p>
 
+        {/* Start / Stop Buttons */}
+        <div className="flex gap-2 justify-center mb-4">
+          <Button 
+            onClick={handleStart} 
+            className="hover:scale-105 transition-transform duration-200 cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg" 
+            disabled={tracking}
+          >
+            Start 
+          </Button>
+          <Button 
+            onClick={handleStop} 
+            className="hover:scale-105 transition-transform duration-200 cursor-pointer bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg" 
+            disabled={!tracking} 
+            variant="destructive"
+          >
+            End
+          </Button>
+        </div>
+
+        {/* Google Map */}
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
-          center={
-            hasValidCoordinates
-              ? { lat: latitude!, lng: longitude! }
-              : defaultCenter
-          }
+          center={mapCenter}
           zoom={12}
-          onLoad={handleMapLoad}
           options={{
             gestureHandling: "greedy",
             zoomControl: true,
@@ -277,14 +278,18 @@ export default function Home() {
             disableDefaultUI: false,
           }}
         >
-          <Marker
-            position={
-              hasValidCoordinates
-                ? { lat: latitude!, lng: longitude! }
-                : defaultCenter
-            }
-          />
-          {directions && <DirectionsRenderer directions={directions} />}
+          {/* Last Position Marker */}
+          {routeCoords.length > 0 && (
+            <Marker position={routeCoords[routeCoords.length - 1]} />
+          )}
+
+          {/* Polyline */}
+          {routeCoords.length > 1 && (
+            <Polyline
+              path={routeCoords}
+              options={{ strokeOpacity: 0.8, strokeWeight: 4 }}
+            />
+          )}
         </GoogleMap>
       </Card>
     </div>

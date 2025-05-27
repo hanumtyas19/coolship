@@ -146,12 +146,6 @@ export function LoginForm({
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password" className="font-medium">Password</Label>
-                  <a
-                    href="#"
-                    className="ml-auto text-sm text-blue-600 hover:text-blue-800 underline-offset-2 hover:underline transition-colors"
-                  >
-                    Forgot your password?
-                  </a>
                 </div>
                 <div className="relative">
                   <Input
@@ -218,8 +212,8 @@ export function LoginForm({
             />
             <div className="absolute inset-0 flex items-center justify-center p-8">
               <div className="text-white max-w-md">
-                <h2 className="text-3xl font-bold mb-4">Smart Frozen Food Management</h2>
-                <p className="opacity-90">Manage your frozen food inventory efficiently with our advanced dashboard and analytics.</p>
+                <h2 className="text-3xl font-bold mb-4">Monitoring System of Frozen Food</h2>
+                <p className="opacity-90">Track every shipment. From warehouse to destination, monitored with precision.</p>
               </div>
             </div>
           </div>

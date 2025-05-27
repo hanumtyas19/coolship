@@ -8,6 +8,17 @@ interface ChartData {
 }
 
 export default function EChartTempPh({ data }: { data: ChartData[] }) {
+  const maxPoints = 30;
+  const slicedData = data.slice(-maxPoints);
+
+  const tempValues = slicedData.map((d) => d.temperature);
+  const humidityValues = slicedData.map((d) => d.humidity);
+
+  const tempMin = Math.min(...tempValues) - 2;
+  const tempMax = Math.max(...tempValues) + 2;
+  const humMin = Math.min(...humidityValues) - 1;
+  const humMax = Math.max(...humidityValues) + 1;
+
   const option = useMemo(() => {
     return {
       title: {
@@ -32,7 +43,7 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
       },
       xAxis: {
         type: "category",
-        data: data.map((d) => d.time),
+        data: slicedData.map((d) => d.time),
         axisLabel: {
           fontSize: 10,
           rotate: 45,
@@ -42,14 +53,14 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
         {
           type: "value",
           name: "Temperature (°C)",
-          min: -25,
-          max: 5,
+          min: tempMin,
+          max: tempMax,
         },
         {
           type: "value",
           name: "Humidity",
-          min: 5,
-          max: 8,
+          min: humMin,
+          max: humMax,
         },
       ],
       series: [
@@ -57,7 +68,7 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
           name: "Temperature",
           type: "line",
           yAxisIndex: 0,
-          data: data.map((d) => d.temperature),
+          data: slicedData.map((d) => d.temperature),
           smooth: true,
           showSymbol: false,
           lineStyle: {
@@ -67,12 +78,14 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
           areaStyle: {
             color: "rgba(255, 99, 132, 0.1)",
           },
+          progressive: 500,
+          animationDurationUpdate: 300,
         },
         {
           name: "Humidity",
           type: "line",
           yAxisIndex: 1,
-          data: data.map((d) => d.humidity),
+          data: slicedData.map((d) => d.humidity),
           smooth: true,
           showSymbol: false,
           lineStyle: {
@@ -82,16 +95,18 @@ export default function EChartTempPh({ data }: { data: ChartData[] }) {
           areaStyle: {
             color: "rgba(54, 162, 235, 0.1)",
           },
+          progressive: 500,
+          animationDurationUpdate: 300,
         },
       ],
     };
-  }, [data]);
+  }, [slicedData]);
 
   return (
     <ReactECharts
       option={option}
       style={{ height: 300, width: "100%" }}
-      notMerge={true} // ini penting untuk mencegah animasi patah
+      notMerge={true}
       lazyUpdate={true}
     />
   );

@@ -3,6 +3,7 @@
 import * as React from "react"
 import {
   IconLayoutDashboardFilled,
+  IconHistoryToggle,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -103,7 +104,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     {
       title: "History",
       url: "/dashboard/history",
-      icon: IconLayoutDashboardFilled,
+      icon: IconHistoryToggle,
     },
 
   ]
