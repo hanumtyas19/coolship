@@ -5,32 +5,45 @@ import { collection, getDocs } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import Link from "next/link";
 import { IconCalendarStats } from "@tabler/icons-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
 export default function HistoryPage() {
   const [dates, setDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // State for date filtering
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     const fetchDates = async () => {
       try {
         const ref = collection(firestore, "tracking_logs");
-        console.log("📌 Mengambil koleksi dari:", ref.path);
+        console.log("📌 Fetching collection from:", ref.path);
 
         const snapshot = await getDocs(ref);
-        console.log("📥 Jumlah dokumen dalam tracking_logs:", snapshot.size);
+        console.log("📥 Number of documents in tracking_logs:", snapshot.size);
 
         if (snapshot.empty) {
-          console.warn("⚠️ Koleksi tracking_logs kosong");
+          console.warn("⚠️ tracking_logs collection is empty");
         }
 
+        // Store all dates (IDs) without sorting first
         const fetchedDates = snapshot.docs.map((doc) => {
-          console.log("📄 Dokumen ID:", doc.id);
+          console.log("📄 Document ID:", doc.id);
           return doc.id;
         });
-
-        setDates(fetchedDates.sort((a, b) => b.localeCompare(a))); // descending
+        setDates(fetchedDates);
       } catch (error) {
-        console.error("❌ Gagal mengambil data dari Firestore:", error);
+        console.error("❌ Failed to fetch data from Firestore:", error);
       } finally {
         setLoading(false);
       }
@@ -39,28 +52,123 @@ export default function HistoryPage() {
     fetchDates();
   }, []);
 
+  // Sort based on sortOrder
+  const sortedDates = [...dates].sort((a, b) => {
+    const dateA = new Date(a).getTime();
+    const dateB = new Date(b).getTime();
+    if (sortOrder === "desc") {
+      return dateB - dateA;
+    } else {
+      return dateA - dateB;
+    }
+  });
+
+  // Filter by date range if available
+  let filteredDates = sortedDates;
+  if (startDate && endDate) {
+    filteredDates = sortedDates.filter((dateStr) => {
+      const current = new Date(dateStr).getTime();
+      const end = new Date(endDate);
+      // Set end date to end of day (23:59:59.999)
+      end.setHours(23, 59, 59, 999);
+      return current >= startDate.getTime() && current <= end.getTime();
+    });
+  }
+
   return (
     <div className="p-8 max-w-6xl mx-auto">
+      {/* Header: Title + Sort + Date Filter */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <IconCalendarStats className="w-8 h-8 text-blue-600" />
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Riwayat Perjalanan
+          <h1 className="text-3xl font-bold text-blue-600">
+            Shipment History
           </h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <div className="grid gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "dd/MM/yyyy") : <span>Start Date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => setStartDate(date || undefined)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "dd/MM/yyyy") : <span>End Date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => setEndDate(date || undefined)}
+                    initialFocus
+                    disabled={(date: Date) =>
+                      startDate ? date < startDate : false
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setStartDate(undefined);
+                setEndDate(undefined);
+              }}
+              size="icon"
+              className="h-9 w-9"
+            >
+              ×
+            </Button>
+          </div>
         </div>
       </div>
 
+      {/* Card Container */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
-            <div className="animate-spin inline-block w-8 h-8 border-[3px] border-current border-t-transparent text-blue-600 rounded-full" role="status" aria-label="loading">
+            <div
+              className="animate-spin inline-block w-8 h-8 border-[3px] border-current border-t-transparent text-blue-600 rounded-full"
+              role="status"
+              aria-label="loading"
+            >
               <span className="sr-only">Loading...</span>
             </div>
-            <div className="text-gray-500 font-medium">Memuat data...</div>
+            <div className="text-gray-500 font-medium">Loading data...</div>
           </div>
-        ) : dates.length > 0 ? (
+        ) : filteredDates.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            {dates.map((date, index) => (
+            {filteredDates.map((date, index) => (
               <div
                 key={date}
                 className="relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
@@ -73,11 +181,11 @@ export default function HistoryPage() {
                     <div className="flex items-center gap-3">
                       <IconCalendarStats className="w-5 h-5 text-blue-600" />
                       <h3 className="font-semibold text-gray-800">
-                        {new Date(date).toLocaleDateString('id-ID', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
+                        {new Date(date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
                         })}
                       </h3>
                     </div>
@@ -86,7 +194,7 @@ export default function HistoryPage() {
                     href={`/dashboard/history/${date}`}
                     className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-all duration-200 hover:shadow-md group-hover:shadow-blue-100"
                   >
-                    Lihat Detail
+                    View Details
                   </Link>
                 </div>
               </div>
@@ -97,9 +205,13 @@ export default function HistoryPage() {
             <div className="text-gray-400 mb-3">
               <IconCalendarStats className="w-12 h-12" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Tidak ada data tersedia</h3>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              No data available
+            </h3>
             <p className="text-gray-500 text-center">
-              Belum ada riwayat perjalanan yang tercatat dalam sistem.
+              {startDate && endDate
+                ? "No history found in the selected date range."
+                : "No travel history has been recorded in the system yet."}
             </p>
           </div>
         )}
