@@ -5,13 +5,34 @@ import { collection, getDocs } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import Link from "next/link";
 import { IconCalendarStats } from "@tabler/icons-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+// Create a custom theme to match your app's design
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#2563eb', // blue-600
+    },
+  },
+  components: {
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '0.5rem',
+            backgroundColor: 'white',
+          },
+        },
+      },
+    },
+  },
+});
 
 export default function HistoryPage() {
   const [dates, setDates] = useState<string[]>([]);
@@ -19,9 +40,8 @@ export default function HistoryPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // State for date filtering
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     const fetchDates = async () => {
@@ -36,7 +56,6 @@ export default function HistoryPage() {
           console.warn("⚠️ tracking_logs collection is empty");
         }
 
-        // Store all dates (IDs) without sorting first
         const fetchedDates = snapshot.docs.map((doc) => {
           console.log("📄 Document ID:", doc.id);
           return doc.id;
@@ -69,7 +88,6 @@ export default function HistoryPage() {
     filteredDates = sortedDates.filter((dateStr) => {
       const current = new Date(dateStr).getTime();
       const end = new Date(endDate);
-      // Set end date to end of day (23:59:59.999)
       end.setHours(23, 59, 59, 999);
       return current >= startDate.getTime() && current <= end.getTime();
     });
@@ -86,70 +104,47 @@ export default function HistoryPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <div className="grid gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd/MM/yyyy") : <span>Start Date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={(date) => setStartDate(date || undefined)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "dd/MM/yyyy") : <span>End Date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={(date) => setEndDate(date || undefined)}
-                    initialFocus
-                    disabled={(date: Date) =>
-                      startDate ? date < startDate : false
+          <ThemeProvider theme={theme}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <div className="flex items-center gap-4">
+                <DatePicker
+                  label="Start Date"
+                  value={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      sx: { width: '180px' }
                     }
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setStartDate(undefined);
-                setEndDate(undefined);
-              }}
-              size="icon"
-              className="h-9 w-9"
-            >
-              ×
-            </Button>
-          </div>
+                  }}
+                  maxDate={endDate || undefined}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      sx: { width: '180px' }
+                    }
+                  }}
+                  minDate={startDate || undefined}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setStartDate(null);
+                    setEndDate(null);
+                  }}
+                  size="icon"
+                  className="h-9 w-9"
+                >
+                  ×
+                </Button>
+              </div>
+            </LocalizationProvider>
+          </ThemeProvider>
         </div>
       </div>
 
