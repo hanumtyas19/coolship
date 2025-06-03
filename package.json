@@ -8,9 +8,7 @@
     "lint": "next lint",
     "preinstall": "npx npm@9 install --legacy-peer-deps",
     "build": "next build"
-    
   },
-  
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
