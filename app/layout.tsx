@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
 import { LoadScript } from "@react-google-maps/api";
 import GoogleMapsProvider from "@/components/GoogleMapsProvider";
+import HolyLoader from "holy-loader";
 
 export const metadata: Metadata = {
   title: "CoolShip",
@@ -17,8 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-      >
+      <body>
+        <HolyLoader 
+          color="linear-gradient(to right, #2563eb, #4f46e5)"
+          height="4px"
+          speed={300}
+          showSpinner={false}
+        />
         <GoogleMapsProvider>
           {children}
         </GoogleMapsProvider>

@@ -20,6 +20,7 @@ import {
   doc,
   getDoc,
 } from "@/lib/firebase"
+import HolyLoader, { startHolyLoader, stopHolyLoader } from 'holy-loader'
 
 export function LoginForm({
   className,
@@ -60,6 +61,7 @@ export function LoginForm({
           description: "You have successfully logged in."
         })
         setAuthToken()
+        startHolyLoader()
         router.push("/dashboard")
       } else {
         await deleteUser(user)
@@ -95,6 +97,7 @@ export function LoginForm({
           description: "You have successfully logged in."
         })
         setAuthToken()
+        startHolyLoader()
         router.push("/dashboard")
       } else {
         await deleteUser(user)
@@ -121,6 +124,12 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <HolyLoader 
+        color="linear-gradient(to right, #2563eb, #4f46e5)"
+        height="4px"
+        speed={300}
+        showSpinner={false}
+      />
       <Card className="overflow-hidden p-0 shadow-lg border-0">
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" onSubmit={handleEmailPasswordLogin}>
