@@ -6,7 +6,6 @@
     "dev": "next dev --turbopack",
     "start": "next start",
     "lint": "next lint",
-    "preinstall": "npx npm@9 install --legacy-peer-deps",
     "build": "next build"
   },
   "dependencies": {
