@@ -56,8 +56,6 @@ export default function HistoryDetailPage() {
   const [pathCoordinates, setPathCoordinates] = useState<google.maps.LatLngLiteral[]>([]);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [waypoints, setWaypoints] = useState<google.maps.DirectionsWaypoint[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -171,16 +169,6 @@ export default function HistoryDetailPage() {
     }
   };
 
-  // Calculate pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = timeSlots.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(timeSlots.length / itemsPerPage);
-
-  const paginate = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
-
   if (loading) {
     return (
       <div className="p-6 max-w-6xl mx-auto">
@@ -267,12 +255,12 @@ export default function HistoryDetailPage() {
                 Data Points Detail
               </h2>
               <div className="text-sm text-gray-600">
-                Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, timeSlots.length)} of {timeSlots.length} entries
+                Total entries: {timeSlots.length}
               </div>
             </div>
 
             <div className="divide-y divide-gray-100 max-h-[600px] overflow-auto">
-              {currentItems.map((slot) => (
+              {timeSlots.map((slot) => (
                 <div key={slot.time} className="p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     🕐 {slot.time}
@@ -315,53 +303,6 @@ export default function HistoryDetailPage() {
                 </div>
               ))}
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="bg-gray-50 px-6 py-4 border-t">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`px-4 py-2 text-sm font-medium rounded-md ${
-                      currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white text-blue-600 hover:bg-blue-50 border border-gray-300'
-                    }`}
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                      <button
-                        key={number}
-                        onClick={() => paginate(number)}
-                        className={`px-4 py-2 text-sm font-medium rounded-md ${
-                          currentPage === number
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white text-blue-600 hover:bg-blue-50 border border-gray-300'
-                        }`}
-                      >
-                        {number}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`px-4 py-2 text-sm font-medium rounded-md ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white text-blue-600 hover:bg-blue-50 border border-gray-300'
-                    }`}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       ) : (
