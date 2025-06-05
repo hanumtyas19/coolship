@@ -176,11 +176,11 @@ export default function Home() {
   // ------------------------
   // 6. Map center logic
   // ------------------------
-  const mapCenter = routeCoords.length
-    ? routeCoords[routeCoords.length - 1]
-    : hasValidCoordinates
+  const mapCenter = hasValidCoordinates 
     ? { lat: latitude!, lng: longitude! }
-    : defaultCenter;
+    : routeCoords.length 
+      ? routeCoords[routeCoords.length - 1]
+      : defaultCenter;
 
   // ------------------------
   // Render
@@ -269,26 +269,75 @@ export default function Home() {
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={mapCenter}
-          zoom={12}
+          zoom={15}
           options={{
             gestureHandling: "greedy",
             zoomControl: true,
             scrollwheel: true,
             draggable: true,
             disableDefaultUI: false,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true,
           }}
         >
-          {/* Last Position Marker */}
-          {routeCoords.length > 0 && (
-            <Marker position={routeCoords[routeCoords.length - 1]} />
+          {/* Current Position Marker */}
+          {hasValidCoordinates && (
+            <Marker
+              position={{ lat: latitude!, lng: longitude! }}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#2563eb",
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: "#FFFFFF",
+              }}
+              title="Current Location"
+            />
           )}
 
-          {/* Polyline */}
+          {/* Route History */}
           {routeCoords.length > 1 && (
-            <Polyline
-              path={routeCoords}
-              options={{ strokeOpacity: 0.8, strokeWeight: 4 }}
-            />
+            <>
+              {/* Route Line */}
+              <Polyline
+                path={routeCoords}
+                options={{
+                  strokeColor: "#2563eb",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 3,
+                }}
+              />
+              
+              {/* Start Point */}
+              <Marker
+                position={routeCoords[0]}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 7,
+                  fillColor: "#22c55e",
+                  fillOpacity: 1,
+                  strokeWeight: 2,
+                  strokeColor: "#FFFFFF",
+                }}
+                title="Start Point"
+              />
+              
+              {/* End Point */}
+              <Marker
+                position={routeCoords[routeCoords.length - 1]}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 7,
+                  fillColor: "#ef4444",
+                  fillOpacity: 1,
+                  strokeWeight: 2,
+                  strokeColor: "#FFFFFF",
+                }}
+                title="Last Tracked Point"
+              />
+            </>
           )}
         </GoogleMap>
       </Card>

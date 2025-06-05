@@ -51,15 +51,17 @@ export default function HistoryPage() {
 
         const snapshot = await getDocs(ref);
         console.log("📥 Number of documents in tracking_logs:", snapshot.size);
+        console.log("📝 All document IDs:", snapshot.docs.map(doc => doc.id));
 
         if (snapshot.empty) {
           console.warn("⚠️ tracking_logs collection is empty");
         }
 
         const fetchedDates = snapshot.docs.map((doc) => {
-          console.log("📄 Document ID:", doc.id);
+          console.log("📄 Processing Document ID:", doc.id);
           return doc.id;
         });
+        console.log("🔄 Final fetched dates:", fetchedDates);
         setDates(fetchedDates);
       } catch (error) {
         console.error("❌ Failed to fetch data from Firestore:", error);
@@ -73,14 +75,35 @@ export default function HistoryPage() {
 
   // Sort based on sortOrder
   const sortedDates = [...dates].sort((a, b) => {
-    const dateA = new Date(a).getTime();
-    const dateB = new Date(b).getTime();
-    if (sortOrder === "desc") {
-      return dateB - dateA;
-    } else {
-      return dateA - dateB;
+    try {
+      const dateA = new Date(a);
+      const dateB = new Date(b);
+      
+      // Check if dates are valid
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        console.error("❌ Invalid date found:", { a, b, dateA, dateB });
+        return 0;
+      }
+
+      console.log("🔍 Comparing dates:", {
+        a: a,
+        b: b,
+        dateA: dateA.toISOString(),
+        dateB: dateB.toISOString()
+      });
+
+      if (sortOrder === "desc") {
+        return dateB.getTime() - dateA.getTime();
+      } else {
+        return dateA.getTime() - dateB.getTime();
+      }
+    } catch (error) {
+      console.error("❌ Error processing dates:", error, { a, b });
+      return 0;
     }
   });
+  
+  console.log("📅 Sorted dates:", sortedDates);
 
   // Filter by date range if available
   let filteredDates = sortedDates;
@@ -89,6 +112,11 @@ export default function HistoryPage() {
       const current = new Date(dateStr).getTime();
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
+      console.log("Checking date:", dateStr);
+      console.log("Current timestamp:", current);
+      console.log("Start timestamp:", startDate.getTime());
+      console.log("End timestamp:", end.getTime());
+      console.log("Is within range:", current >= startDate.getTime() && current <= end.getTime());
       return current >= startDate.getTime() && current <= end.getTime();
     });
   }

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import EChartTempPh from "@/components/EChartTempPh";
-import { GoogleMap, DirectionsService, DirectionsRenderer, Marker } from "@react-google-maps/api";
+import { GoogleMap, DirectionsService, DirectionsRenderer, Marker, Polyline } from "@react-google-maps/api";
 
 interface LogData {
   humidity: number;
@@ -39,6 +39,8 @@ const mapOptions = {
   streetViewControl: true,
   fullscreenControl: true,
   zoomControl: true,
+  gestureHandling: "greedy",
+  draggable: true,
 };
 
 export default function HistoryDetailPage() {
@@ -105,7 +107,7 @@ export default function HistoryDetailPage() {
             humidity: slot.data[0].humidity
           }));
         
-        // Prepare map coordinates
+        // Prepare map coordinates (ensure sorted by time)
         const coordinates: google.maps.LatLngLiteral[] = sortedTimeSlots
           .filter(slot => slot.data.length > 0 && slot.data[0].location)
           .map(slot => ({
@@ -231,45 +233,20 @@ export default function HistoryDetailPage() {
               zoom={14}
               options={mapOptions}
             >
+              {/* Only show Polyline for all points */}
               {pathCoordinates.length >= 2 && (
-                <DirectionsService
+                <Polyline
+                  path={pathCoordinates}
                   options={{
-                    destination: pathCoordinates[pathCoordinates.length - 1],
-                    origin: pathCoordinates[0],
-                    waypoints: waypoints,
-                    travelMode: google.maps.TravelMode.DRIVING,
-                    optimizeWaypoints: true
-                  }}
-                  callback={directionsCallback}
-                />
-              )}
-              
-              {directions && (
-                <DirectionsRenderer
-                  options={{
-                    directions: directions,
-                    markerOptions: {
-                      icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 7,
-                        fillColor: "#4285F4",
-                        fillOpacity: 1,
-                        strokeWeight: 2,
-                        strokeColor: "#FFFFFF",
-                      }
-                    },
-                    suppressMarkers: false,
-                    polylineOptions: {
-                      strokeColor: "#4285F4",
-                      strokeWeight: 5,
-                      strokeOpacity: 0.8
-                    }
+                    strokeColor: "#4285F4",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 6,
                   }}
                 />
               )}
 
-              {/* Fallback to markers if directions fail */}
-              {!directions && pathCoordinates.map((coord, index) => (
+              {/* Fallback to markers if no polyline */}
+              {pathCoordinates.length < 2 && pathCoordinates.map((coord, index) => (
                 <Marker
                   key={index}
                   position={coord}
