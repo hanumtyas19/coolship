@@ -45,11 +45,9 @@ export const logSensorDataEveryMinute = onSchedule(
     region: "asia-southeast1",
   },
   async () => {
-    // Ambil data sensor
     const snapshot = await admin.database().ref("/sensor_data").get();
     const data = snapshot.val();
 
-    // Ambil status tracking dari path lain
     const trackingSnap = await admin.database().ref("/track/status").get();
     const trackingStatus = trackingSnap.val();
 
@@ -57,8 +55,21 @@ export const logSensorDataEveryMinute = onSchedule(
 
     const { temperature_ds18b20, humidity, latitude, longitude } = data;
 
-    const newLogRef = admin.firestore().collection("tracking_logs").doc();
-    await newLogRef.set({
+    // Dapatkan tanggal dan waktu dalam zona Asia/Jakarta
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+    const dateStr = now.toISOString().split("T")[0]; // contoh: "2025-05-29"
+    const hour = now.getHours().toString().padStart(2, "0");
+    const minute = now.getMinutes().toString().padStart(2, "0");
+    const timeStr = `${hour}:${minute}`; // contoh: "14:00"
+
+    // Buat path: tracking_logs/{date}/logs/{time}
+    const docRef = admin.firestore()
+      .collection("tracking_logs")
+      .doc(dateStr)
+      .collection("logs")
+      .doc(timeStr);
+
+    await docRef.set({
       temperature: temperature_ds18b20,
       humidity,
       location: {
@@ -68,6 +79,6 @@ export const logSensorDataEveryMinute = onSchedule(
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.log("Logged data at", new Date().toISOString());
+    console.log(`Logged data at ${dateStr} ${timeStr}`);
   }
 );

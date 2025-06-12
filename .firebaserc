@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "smart-frozen-food-dagsap"
-  }
+    "default": "smart-frozen-food-dagsap",
+    "coolship": "smart-frozen-food-b708c",
+    "projen": "smart-frozen-food-dagsap"
+  },
+  "targets": {},
+  "etags": {}
 }

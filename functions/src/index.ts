@@ -65,19 +65,26 @@ export const logSensorDataEveryMinute = onSchedule(
     // Buat path: tracking_logs/{date}/logs/{time}
     const docRef = admin.firestore()
       .collection("tracking_logs")
-      .doc(dateStr)
-      .collection("logs")
-      .doc(timeStr);
+      .doc(dateStr);
 
+    // Set timestamp at date level
     await docRef.set({
-      temperature: temperature_ds18b20,
-      humidity,
-      location: {
-        lat: latitude,
-        lng: longitude,
-      },
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    // Set data in logs subcollection
+    await docRef
+      .collection("logs")
+      .doc(timeStr)
+      .set({
+        temperature: temperature_ds18b20,
+        humidity,
+        location: {
+          lat: latitude,
+          lng: longitude,
+        },
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
 
     console.log(`Logged data at ${dateStr} ${timeStr}`);
   }

@@ -22,8 +22,8 @@ const mapContainerStyle = {
 
 // Titik tengah map kalau belum ada data lokasi
 const defaultCenter = {
-  lat: -7.6079,
-  lng: 111.9054,
+  lat: -7.610952724992678,
+  lng: 111.51708608194879,
 };
 
 interface SensorData {

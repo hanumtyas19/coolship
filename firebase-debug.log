@@ -1,0 +1,16 @@
+[debug] [2025-06-11T05:13:28.298Z] ----------------------------------------------------------------------
+[debug] [2025-06-11T05:13:28.304Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\mahar\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2025-06-11T05:13:28.305Z] CLI Version:   14.4.0
+[debug] [2025-06-11T05:13:28.305Z] Platform:      win32
+[debug] [2025-06-11T05:13:28.305Z] Node Version:  v20.14.0
+[debug] [2025-06-11T05:13:28.305Z] Time:          Wed Jun 11 2025 12:13:28 GMT+0700 (Western Indonesia Time)
+[debug] [2025-06-11T05:13:28.306Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-06-11T05:13:28.692Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-06-11T05:13:28.693Z] > authorizing via signed-in user (affannaufalsyarifalghifari@gmail.com)
+[debug] [2025-06-11T05:13:28.693Z] [iam] checking project smart-frozen-food-dagsap for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2025-06-11T05:13:28.695Z] Checked if tokens are valid: true, expires at: 1749622330483
+[debug] [2025-06-11T05:13:28.695Z] Checked if tokens are valid: true, expires at: 1749622330483
+[debug] [2025-06-11T05:13:28.697Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/smart-frozen-food-dagsap:testIamPermissions [none]
+[debug] [2025-06-11T05:13:28.698Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/smart-frozen-food-dagsap:testIamPermissions x-goog-quota-user=projects/smart-frozen-food-dagsap
+[debug] [2025-06-11T05:13:28.698Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/smart-frozen-food-dagsap:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
