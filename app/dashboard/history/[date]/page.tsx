@@ -66,12 +66,12 @@ export default function HistoryDetailPage() {
 
     const fetchDetailData = async () => {
       try {
-        console.log("📅 Fetching data for date:", date);
+        console.log("Fetching data for date:", date);
         
         const logsRef = collection(firestore, `tracking_logs/${date}/logs`);
         const logsSnapshot = await getDocs(logsRef);
         
-        console.log("🕐 Number of time slots:", logsSnapshot.size);
+        console.log("Number of time slots:", logsSnapshot.size);
         
         if (logsSnapshot.empty) {
           setError("No log data available for this date");
@@ -133,7 +133,7 @@ export default function HistoryDetailPage() {
         setTimeSlots(sortedTimeSlots);
         
       } catch (error: any) {
-        console.error("❌ Error fetching detail data:", error);
+        console.error("Error fetching detail data:", error);
         setError(`Error: ${error.message}`);
       } finally {
         setLoading(false);
@@ -269,17 +269,17 @@ export default function HistoryDetailPage() {
                   {slot.data.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-blue-50 rounded-lg p-4">
-                        <span className="text-blue-600 font-medium">💧 Humidity</span>
+                        <span className="text-blue-600 font-medium">Humidity</span>
                         <div className="text-2xl font-bold mt-1">{slot.data[0].humidity}%</div>
                       </div>
                       
                       <div className="bg-red-50 rounded-lg p-4">
-                        <span className="text-red-600 font-medium">🌡️ Temperature</span>
+                        <span className="text-red-600 font-medium">Temperature</span>
                         <div className="text-2xl font-bold mt-1">{slot.data[0].temperature}°C</div>
                       </div>
                       
                       <div className="bg-green-50 rounded-lg p-4">
-                        <span className="text-green-600 font-medium">📍 Location</span>
+                        <span className="text-green-600 font-medium">Location</span>
                         <div className="text-sm font-mono mt-1">
                           {slot.data[0].location?.lat && slot.data[0].location?.lng 
                             ? `${slot.data[0].location.lat}, ${slot.data[0].location.lng}`
@@ -289,7 +289,7 @@ export default function HistoryDetailPage() {
                       </div>
                       
                       <div className="bg-purple-50 rounded-lg p-4">
-                        <span className="text-purple-600 font-medium">⏰ Time</span>
+                        <span className="text-purple-600 font-medium">Time</span>
                         <div className="text-sm font-medium mt-1">
                           {formatTimestamp(slot.data[0].timestamp)}
                         </div>

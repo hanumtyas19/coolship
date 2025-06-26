@@ -47,24 +47,24 @@ export default function HistoryPage() {
     const fetchDates = async () => {
       try {
         const ref = collection(firestore, "tracking_logs");
-        console.log("📌 Fetching collection from:", ref.path);
+        console.log("Fetching collection from:", ref.path);
 
         const snapshot = await getDocs(ref);
-        console.log("📥 Number of documents in tracking_logs:", snapshot.size);
-        console.log("📝 All document IDs:", snapshot.docs.map(doc => doc.id));
+        console.log("Number of documents in tracking_logs:", snapshot.size);
+        console.log("All document IDs:", snapshot.docs.map(doc => doc.id));
 
         if (snapshot.empty) {
-          console.warn("⚠️ tracking_logs collection is empty");
+          console.warn("tracking_logs collection is empty");
         }
 
         const fetchedDates = snapshot.docs.map((doc) => {
-          console.log("📄 Processing Document ID:", doc.id);
+          console.log("Processing Document ID:", doc.id);
           return doc.id;
         });
-        console.log("🔄 Final fetched dates:", fetchedDates);
+        console.log("Final fetched dates:", fetchedDates);
         setDates(fetchedDates);
       } catch (error) {
-        console.error("❌ Failed to fetch data from Firestore:", error);
+        console.error("Failed to fetch data from Firestore:", error);
       } finally {
         setLoading(false);
       }
@@ -81,11 +81,11 @@ export default function HistoryPage() {
       
       // Check if dates are valid
       if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-        console.error("❌ Invalid date found:", { a, b, dateA, dateB });
+        console.error("Invalid date found:", { a, b, dateA, dateB });
         return 0;
       }
 
-      console.log("🔍 Comparing dates:", {
+      console.log("Comparing dates:", {
         a: a,
         b: b,
         dateA: dateA.toISOString(),
@@ -98,12 +98,12 @@ export default function HistoryPage() {
         return dateA.getTime() - dateB.getTime();
       }
     } catch (error) {
-      console.error("❌ Error processing dates:", error, { a, b });
+      console.error("Error processing dates:", error, { a, b });
       return 0;
     }
   });
   
-  console.log("📅 Sorted dates:", sortedDates);
+  console.log("Sorted dates:", sortedDates);
 
   // Filter by date range if available
   let filteredDates = sortedDates;
